@@ -1,6 +1,8 @@
 from textnode import TextNode, TextType
-import shutil, os
+import shutil, os, sys
 from markdown_to_htmlnode import markdown_to_html_node
+
+basepath = sys.argv[1] if len(sys.argv) == 2 else "/"
 
 def copy_contents(src, dest):
 
@@ -24,7 +26,7 @@ def extract_title(markdown):
         if line.startswith("# "):
             return line[2:]
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     with open(from_path, "r") as file:
@@ -36,25 +38,27 @@ def generate_page(from_path, template_path, dest_path):
 
             final = template.replace("{{ Title }}", extract_title(markdown))
             final = final.replace("{{ Content }}", html)
+            final = final.replace("href=\"/", f"href={basepath}")
+            final = final.replace("src=\"/", f"src={basepath}")
 
             with open(dest_path, "w") as file3:
                 file3.write(final)
             
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     # list out the contents of content directory
     content_list = os.listdir(dir_path_content)
 
     # convert any markdwon files in the current directory
     for item in content_list:
         if os.path.isfile(os.path.join(dir_path_content, item)):
-            generate_page(os.path.join(dir_path_content, item), template_path, os.path.join(dest_dir_path, item[:-2]+"html"))
+            generate_page(os.path.join(dir_path_content, item), template_path, os.path.join(dest_dir_path, item[:-2]+"html"), basepath)
         else:
             os.mkdir(os.path.join(dest_dir_path, item))
-            generate_pages_recursive(os.path.join(dir_path_content, item), template_path, os.path.join(dest_dir_path, item))
+            generate_pages_recursive(os.path.join(dir_path_content, item), template_path, os.path.join(dest_dir_path, item), basepath)
 
 def main():
     src = "static"
-    dest = "public"
+    dest = "docs"
 
     #delete and recreate public directory
     if os.path.exists(dest):
@@ -63,6 +67,6 @@ def main():
     os.mkdir(dest)
 
     copy_contents(src, dest)
-    generate_pages_recursive("content", "template.html", "public")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 main()
